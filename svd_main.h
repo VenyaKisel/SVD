@@ -30,9 +30,9 @@ class SVD{
         Eigen::Matrix<T, M, N> S;
         Eigen::Matrix<T, N, N> V;
 
-        void Set_U(Eigen::Matrix<T, M, M> a){U = a};
-        void Set_S(Eigen::Matrix<T, M, N> a){S = a};
-        void Set_V(Eigen::Matrix<T, N, N> a){V = a};
+        void Set_U(Eigen::Matrix<T, M, M> a){U = a;};
+        void Set_S(Eigen::Matrix<T, M, N> a){S = a;};
+        void Set_V(Eigen::Matrix<T, N, N> a){V = a;};
 
     protected:
         SVD RefSVD(const Eigen :: Matrix<T, M, N>& A, const Eigen::Matrix<T, M, M>& Ui, const Eigen::Matrix<T, N, N>& Vi){
@@ -68,10 +68,10 @@ class SVD{
             // and compute diagonal parts of F11 and G
 
             matrix_nn Sigma_n(n, n);
-            Sigma_n.setzero();
+            Sigma_n.setZero();
 
             for(int i = 0; i < n; i++){
-                Sigma_n(i, i) = T(i, i) / (1 - (R(i, i) + S(i, i)) * 0.5)
+                Sigma_n(i, i) = T(i, i) / (1 - (R(i, i) + S(i, i)) * 0.5);
                 F11(i, i) = R(i, i) * 0.5;
                 G(i, i) = S(i, i) * 0.5; 
             }
@@ -86,12 +86,12 @@ class SVD{
                 sigma_i_sqr = Sigma_n(i, i) * Sigma_n(i, i);
                 for(int j = 0; j < n; j++){
                     if(i != j){
-                        sigma_j_sqr = Sigma_n(j, j) * Sigma(j, j);
+                        sigma_j_sqr = Sigma_n(j, j) * Sigma_n(j, j);
                         alpha = T(i, j) + Sigma_n(j, j) * R(i, j);
                         betta = T(j, i) + Sigma_n(j, j) * S(i, j);
 
-                        F11(i, j) = ((alpha * Sigma_n(j, j) + betta * Sigma(i, i)) / (sigma_j_sqr - sigma_i_sqr));
-                        G(i, j) = ((alpha * Sigma_n(i, i) + betta * Sigma(j, j)) / (sigma_j_sqr - sigma_i_sqr));
+                        F11(i, j) = ((alpha * Sigma_n(j, j) + betta * Sigma_n(i, i)) / (sigma_j_sqr - sigma_i_sqr));
+                        G(i, j) = ((alpha * Sigma_n(i, i) + betta * Sigma_n(j, j)) / (sigma_j_sqr - sigma_i_sqr));
                     }
                 }
             }
@@ -102,7 +102,7 @@ class SVD{
 
             // Step 5: compute F12;
 
-            matrix_mm F12(n, m - n);
+            matrix_dd F12(m - n, n);
 
             for(int i = 0; i < n; i++){
                 for(int j = n + 1; j < m; j++){
@@ -112,6 +112,8 @@ class SVD{
 
             // Step 6: compute F21
 
+            matrix_dd F21(n, m - n);
+
             for(int i = n + 1; i <= m; i++){
                 for(int j = 0; j < n; j++){
                     F21(i, j) = R(i, j) - F21(j, i);
@@ -119,7 +121,7 @@ class SVD{
             }
 
             // Step 7: compute F22;
-
+            matrix_dd F22(m - n, m - n);
             for(int i = n + 1; i < m; i++){
                 for(int j = 0; j < m; j++){
                     F22(i, j) = R(i, j) * 0.5;
@@ -137,11 +139,11 @@ class SVD{
             matrix_mm U = Ud + Ud * F;
             matrix_nn V = Vd + Vd * F;
 
-            SVD<T, M, N> ANS;
-            ANS.Set_V(V.template cast<T>());
-            ANS.Set_U(V.template cast<T>());
-            ANS.Set_S(Sigma.template cast<T>());
-            return ANS;
+            SVD ans;
+            ans.Set_U(U_new.template cast<T>());
+            ans.Set_V(V_new.template cast<T>());
+            ans.Set_S(Sigma_full.template cast<T>());
+            return ans;
         };
 
     public:
