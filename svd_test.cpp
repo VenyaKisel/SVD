@@ -1,6 +1,6 @@
 #include <iostream>
 #include "svd_main.h"
-
+#include <Eigen/Dense>
 
 int main()
 {
@@ -18,7 +18,7 @@ int main()
         73, 74, 75, 76, 77, 78, 79, 80, 81,
         3, 9, (float)4.98942, (float)0.324235,  443534, 345, (float)56.543853, (float)450.435234, (float)43.34353221;
 
-    BDCSVD<MatrixXf> svd(A, ComputeFullU | ComputeFullV);
+    Eigen::BDCSVD<Eigen::MatrixXf> svd(A, Eigen::ComputeFullU | Eigen::ComputeFullV);
     SVD<float,10,9> Ans(A);
 
     cout << Ans.matrixU() * Ans.singularValues() * Ans.matrixV().transpose() << "\n" << "\n";
@@ -37,3 +37,6 @@ int main()
 
     return 0;
 }
+
+// g++ -Wa,-mbig-obj -O2 -IC:/cpp/eigen-3.4.0 svd_test.cpp -o svd_test.exe
+// svd_test.exe
