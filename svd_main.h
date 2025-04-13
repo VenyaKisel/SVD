@@ -20,29 +20,29 @@
 
 using namespace std;
 
-template<typename T, int M, int N>
+template<typename Scalar, int M, int N>
 class SVD;
 
-template<typename T, int M, int N>
+template<typename Scalar, int M, int N>
 class SVD{
     private:
-        Eigen::Matrix<T, M, M> U;
-        Eigen::Matrix<T, M, N> S;
-        Eigen::Matrix<T, N, N> V;
+        Eigen::Matrix<Scalar, M, M> U;
+        Eigen::Matrix<Scalar, M, N> S;
+        Eigen::Matrix<Scalar, N, N> V;
 
-        void Set_U(Eigen::Matrix<T, M, M> a){U = a;};
-        void Set_S(Eigen::Matrix<T, M, N> a){S = a;};
-        void Set_V(Eigen::Matrix<T, N, N> a){V = a;};
+        void Set_U(Eigen::Matrix<Scalar, M, M> a){U = a;};
+        void Set_S(Eigen::Matrix<Scalar, M, N> a){S = a;};
+        void Set_V(Eigen::Matrix<Scalar, N, N> a){V = a;};
 
     protected:
-        SVD RefSVD(const Eigen :: Matrix<T, M, N>& A, const Eigen::Matrix<T, M, M>& Ui, const Eigen::Matrix<T, N, N>& Vi){
+        SVD RefSVD(const Eigen :: Matrix<Scalar, M, N>& A, const Eigen::Matrix<Scalar, M, M>& Ui, const Eigen::Matrix<Scalar, N, N>& Vi){
             const int m = A.rows();
             const int n = A.cols();
 
             if (A.rows() < A.cols())
             {
                 cout << "Attention! Number of the rows must be greater or equal  than  number of the columns";
-                SVD_alg_1 ANS;
+                SVD ANS;
                 return ANS;
             }
 
@@ -61,8 +61,10 @@ class SVD{
             matrix_mm R = matrix_dd::Constant(m, m, 1.0) - Ud.transpose() * Ud;
             matrix_nn S = matrix_dd::Constant(n, n, 1.0) - Vd.transpose() * Vd;
             matrix_mn T = Ud.transpose() * Ad * Vd;
-            matrix_mm F11(n, n);
+            matrix_nn F11(n, n);
+            F11.setZero();
             matrix_nn G;
+            G.setZero();
 
             // Step 2 and 3: compute approximate singular values
             // and compute diagonal parts of F11 and G
@@ -102,29 +104,32 @@ class SVD{
 
             // Step 5: compute F12;
 
-            matrix_dd F12(m - n, n);
+            matrix_dd F12(n, m - n);
 
-            for(int i = 0; i < n; i++){
-                for(int j = n + 1; j < m; j++){
-                    F12(i, j) = -T(j, i) / Sigma_n(j, j);
+            for (int i = 0; i < n; ++i) {
+                for (int j = n; j < m; ++j) {
+                    F12(i, j - n) = -T(j, i) / Sigma_n(i, i);
                 }
             }
+            
 
             // Step 6: compute F21
 
-            matrix_dd F21(n, m - n);
+            matrix_dd F21(m - n, n);
 
-            for(int i = n + 1; i <= m; i++){
-                for(int j = 0; j < n; j++){
-                    F21(i, j) = R(i, j) - F21(j, i);
+            for (int i = n; i < m; ++i) {
+                for (int j = 0; j < n; ++j) {
+                    int row = i - n;
+                    int col = j;
+                    F21(i - n, j) = R(i,  j) - F12(j, i - n);
                 }
             }
 
             // Step 7: compute F22;
             matrix_dd F22(m - n, m - n);
-            for(int i = n + 1; i < m; i++){
-                for(int j = 0; j < m; j++){
-                    F22(i, j) = R(i, j) * 0.5;
+            for(int i = n; i < m; ++i){
+                for(int j = n; j < m; ++j){
+                    F22(i - n, j - n) = R(i, j) * 0.5;
                 }
             }
         
@@ -137,39 +142,39 @@ class SVD{
             F.block(n, n, m - n, m - n) = F22;
 
             matrix_mm U = Ud + Ud * F;
-            matrix_nn V = Vd + Vd * F;
+            matrix_nn V = Vd + Vd * G;
 
-            SVD ans;
-            ans.Set_U(U_new.template cast<T>());
-            ans.Set_V(V_new.template cast<T>());
-            ans.Set_S(Sigma_full.template cast<T>());
+            SVD<Scalar, M, N> ans;
+            ans.Set_U(U.template cast<Scalar>());
+            ans.Set_V(V.template cast<Scalar>());
+            ans.Set_S(Sigma.template cast<Scalar>());
             return ans;
         };
 
     public:
         SVD() {};
 
-        SVD_alg_1(Eigen::Matrix<T, M, N> A)
+        SVD(Eigen::Matrix<Scalar, M, N> A)
         {
-            Eigen::BDCSVD< Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>> svd(A, Eigen::ComputeFullU | Eigen::ComputeFullV);
-            SVD<T, M, N> temp;
+            Eigen::BDCSVD< Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>> svd(A, Eigen::ComputeFullU | Eigen::ComputeFullV);
+            SVD<Scalar, M, N> temp;
             temp = RefSVD(A, svd.matrixU(), svd.matrixV());
             this->U = temp.matrixU();
             this->V = temp.matrixV();
             this->S = temp.singularValues();
         }
 
-        Eigen::Matrix<T, N, N> matrixV()
+        Eigen::Matrix<Scalar, N, N> matrixV()
         {
             return V;
         }
 
-        Eigen::Matrix<T, M, M> matrixU()
+        Eigen::Matrix<Scalar, M, M> matrixU()
         {
             return U;
         }
 
-        Eigen::Matrix<T, M, N> singularValues()
+        Eigen::Matrix<Scalar, M, N> singularValues()
         {
             return S;
         }
