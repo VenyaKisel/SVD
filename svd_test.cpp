@@ -1,42 +1,41 @@
+#define EIGEN_UNROLLING_LIMIT 0
+
 #include <iostream>
-#include "svd_main.h"
+#include "svd.h"
 #include <Eigen/Dense>
 
 int main()
 {
     using namespace std;
     using namespace Eigen;
-    Eigen::Matrix<float, Dynamic, Dynamic> A(10,9);
-    A << 1, 2, 3, 4, 5, 6, 7, 8, 9,
-        10, 11, 12, 13, 14, 15, 16, 17, 18,
-        19, 20, 21, 22, 23, 24, 25, 26, 27,
-        28, 29, 30, 31, 32, 33, 34, 35, 36,
-        37, 38, 39, 40, 41, 42, 43, 44, 45,
-        46, 47, 48, 49, 50, 51, 52, 53, 54,
-        55, 56, 57, 58, 59, 60, 61, 62, 63,
-        64, 65, 66, 67, 68, 68, 70, 71, 72,
-        73, 74, 75, 76, 77, 78, 79, 80, 81,
-        3, 9, (float)4.98942, (float)0.324235,  443534, 345, (float)56.543853, (float)450.435234, (float)43.34353221;
+    
+    Eigen::Matrix<float, 81, 80> A = Matrix<float, 81, 80>::Random();
 
-    Eigen::BDCSVD<Eigen::MatrixXf> svd(A, Eigen::ComputeFullU | Eigen::ComputeFullV);
-    SVD<float,10,9> Ans(A);
-
-    cout << Ans.matrixU() * Ans.singularValues() * Ans.matrixV().transpose() << "\n" << "\n";
-    cout << Ans.matrixU() << "\n";
-    cout << Ans.matrixV() << "\n";
-    cout << Ans.singularValues() << "\n" << "\n";
-
-   
-    Array<float,1, Dynamic> sigm(9);
-    sigm  = svd.singularValues();
-    Eigen::Matrix<float, Dynamic, Dynamic > I(10, 9);
+    Eigen::BDCSVD<Eigen::MatrixXf> svd(A, ComputeFullU | ComputeFullV);
+    
+    SVD<float, 81, 80> Ans(A);
+    
+    Eigen::Matrix<float, Dynamic, Dynamic> A_reconstructed = Ans.matrixU() * Ans.singularValues() * Ans.matrixV().transpose();
+    cout << "A_reconstructed:\n\n" <<  A_reconstructed << "\n\n";
+    float reconstruction_error = (A - A_reconstructed).norm() / A.norm();
+    cout << "Reconstruction error (my SVD, Frobenius norm): " 
+         << reconstruction_error << "  \n\n";
+         
+    Array<float, 1, Dynamic> sigm(80);
+    sigm = svd.singularValues(); 
+    Eigen::Matrix<float, Dynamic, Dynamic> I(81, 80);
     I.setZero();
-    I.block(0,0,9,9) = sigm.matrix().asDiagonal();
-    Eigen::Matrix<float, Dynamic, Dynamic > U = svd.matrixU();
-    cout << U*I* svd.matrixV().transpose() << "\n" << "\n";
-
+    I.block(0, 0, 80, 80) = sigm.matrix().asDiagonal();
+    Eigen::Matrix<float, Dynamic, Dynamic> U = svd.matrixU();
+    Eigen::Matrix<float, Dynamic, Dynamic> A_eigen = U * I * svd.matrixV().transpose();
+    cout << "Eigen A matrix:\n" << A_eigen << "\n\n";
+    float reconstruction_error_eigen = (A - A_eigen).norm() / A.norm();
+    cout << "Reconstruction error (BDCSVD, Frobenius norm): " 
+         << reconstruction_error_eigen << "\n\n";
+         
     return 0;
 }
 
+// Пример компиляции (Windows):
 // g++ -Wa,-mbig-obj -O2 -IC:/cpp/eigen-3.4.0 svd_test.cpp -o svd_test.exe
 // svd_test.exe
